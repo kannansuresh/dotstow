@@ -35,16 +35,19 @@ sudo ln -s $(pwd)/dotstow.py /usr/local/bin/dotstow
 ### Installing GNU Stow
 
 **macOS (Homebrew):**
+
 ```bash
 brew install stow
 ```
 
 **Ubuntu/Debian:**
+
 ```bash
 sudo apt install stow
 ```
 
 **Arch Linux:**
+
 ```bash
 sudo pacman -S stow
 ```
@@ -60,30 +63,35 @@ dotstow.py <source_path> [app_name] [options]
 ### Common Usage Patterns
 
 #### 1. Move a config file with auto-detection
+
 ```bash
 # DotStow will infer the app name and dotfiles directory
 dotstow.py ~/.vimrc
 ```
 
 #### 2. Specify custom app name
+
 ```bash
 # Move .zshrc to a custom app directory named 'shell'
 dotstow.py ~/.zshrc shell
 ```
 
 #### 3. Use specific dotfiles directory
+
 ```bash
 # Move to a specific dotfiles repository
 dotstow.py ~/.config/nvim --dotfiles-dir ~/my-dotfiles
 ```
 
 #### 4. Auto-stow after moving
+
 ```bash
 # Move and automatically run stow without confirmation
 dotstow.py ~/.gitconfig --auto-stow
 ```
 
 #### 5. Skip stow entirely
+
 ```bash
 # Just move files without any stow operations
 dotstow.py ~/.tmux.conf --no-stow
@@ -142,6 +150,7 @@ dotstow.py ~/.config/alacritty --auto-stow
 DotStow includes built-in mappings for these common applications:
 
 ### Shells
+
 - `zsh` (.zshrc)
 - `bash` (.bashrc, .bash_profile, .bash_aliases)
 - `fish` (config.fish)
@@ -149,6 +158,7 @@ DotStow includes built-in mappings for these common applications:
 - `csh` (.cshrc)
 
 ### Editors
+
 - `vim` (.vimrc)
 - `nvim` (init.lua, init.vim)
 - `nano` (.nanorc)
@@ -156,15 +166,18 @@ DotStow includes built-in mappings for these common applications:
 - `sublime-text` (preferences)
 
 ### Version Control
+
 - `git` (.gitconfig, .gitignore_global)
 
 ### Terminal Tools
+
 - `tmux` (.tmux.conf)
 - `alacritty` (alacritty.yml, alacritty.toml)
 - `kitty` (kitty.conf)
 - `starship` (starship.toml)
 
 ### System Tools
+
 - `ssh` (config)
 - `gnupg` (gpg.conf)
 - `htop` (htoprc)
@@ -184,15 +197,19 @@ DotStow includes built-in mappings for these common applications:
 ## How It Works
 
 ### 1. Path Validation
+
 - Ensures source path exists and is within the home directory
 - Prevents moving files outside of safe locations
 
 ### 2. App Name Inference
+
 - Uses built-in mappings to determine appropriate app names
 - Falls back to filename-based inference for unknown files
 
 ### 3. Directory Structure
+
 - Creates GNU Stow-compatible directory structure:
+
   ```
   dotfiles/
   ├── vim/
@@ -206,15 +223,18 @@ DotStow includes built-in mappings for these common applications:
   ```
 
 ### 4. Safe Movement
+
 - Checks for existing files to prevent overwrites
 - Creates necessary parent directories
 - Moves files atomically
 
 ### 5. Cleanup
+
 - Removes macOS `.DS_Store` files
 - Cleans up temporary artifacts
 
 ### 6. Stow Integration
+
 - Optionally runs GNU Stow to create symbolic links
 - Handles stow errors gracefully
 
@@ -238,16 +258,21 @@ DotStow provides clear error messages for common issues:
 ## Tips and Best Practices
 
 ### 1. Test First
+
 Run DotStow with individual files to understand the behavior before batch processing.
 
 ### 2. Backup Important Configs
+
 Always backup your configurations before moving them:
+
 ```bash
 cp -r ~/.config/important-app ~/.config/important-app.backup
 ```
 
 ### 3. Use Version Control
+
 Initialize your dotfiles directory as a git repository:
+
 ```bash
 cd ~/dotfiles
 git init
@@ -256,14 +281,18 @@ git commit -m "Initial dotfiles setup"
 ```
 
 ### 4. Custom App Names
+
 For organization, you can group related configs:
+
 ```bash
 dotstow.py ~/.bash_profile shell
 dotstow.py ~/.zsh_aliases shell
 ```
 
 ### 5. Verify Stow Results
+
 After stowing, verify that symbolic links were created correctly:
+
 ```bash
 ls -la ~ | grep "^l"  # List symbolic links in home directory
 ```
@@ -271,7 +300,9 @@ ls -la ~ | grep "^l"  # List symbolic links in home directory
 ## Troubleshooting
 
 ### Stow Conflicts
+
 If stow reports conflicts, you may have existing files that need to be moved or removed:
+
 ```bash
 # Remove conflicting files
 rm ~/.existing-config
@@ -280,13 +311,16 @@ mv ~/.existing-config ~/.existing-config.backup
 ```
 
 ### Permission Issues
+
 Ensure you have write permissions to both source and destination directories:
+
 ```bash
 ls -la ~/.config/
 ls -la ~/dotfiles/
 ```
 
 ### Path Issues
+
 Use absolute paths or ensure you're in the correct directory when running DotStow.
 
 ## Contributing
@@ -322,3 +356,9 @@ This project is open source. See the repository for license details.
 **Repository**: [https://github.com/kannansuresh/dotstow](https://github.com/kannansuresh/dotstow)
 
 For issues, feature requests, or contributions, please visit the GitHub repository.
+
+## Extras
+
+The repository contains an extras folder with a collection of bash scripts for managing dotfiles using GNU Stow with special support for macOS environments.
+
+[Read more about them.](./extras/README.md)
