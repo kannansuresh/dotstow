@@ -1,4 +1,18 @@
 #!/bin/bash
+#
+# Dotfiles Migration Script
+#
+# This script safely migrates a GNU Stow-managed dotfiles repository from an
+# old directory to a new one. It handles the process of unstowing all packages
+# from the old location, moving the repository, and then restowing them from
+# the new location.
+#
+# Usage:
+#   ./migrate.sh <old_dotfiles_directory> <new_dotfiles_directory>
+#
+# Example:
+#   ./migrate.sh ~/dotfiles ~/new-dotfiles-repo
+#
 set -euo pipefail
 
 # Check if the user provided old and new directories as arguments

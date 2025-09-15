@@ -1,10 +1,39 @@
 #!/bin/bash
+#
+# DotStow Bash Script
+#
+# This script provides a lightweight, pure-bash alternative to the main
+# dotstow.py script. It moves configuration files into a GNU Stow-compatible
+# directory structure, infers application names, and provides interactive
+# prompts for confirmation and directory creation.
+#
+# Usage:
+#   ./dotstow.sh <source_path> [app_name] [--dotfiles-dir <path>]
+#
+# Examples:
+#   - Move .zshrc and auto-detect dotfiles dir:
+#     ./dotstow.sh ~/.zshrc
+#   - Move nvim config and specify the app name and dotfiles dir:
+#     ./dotstow.sh ~/.config/nvim nvim --dotfiles-dir ~/my-dots
+#
 
 set -euo pipefail
 
 # --- Helper Functions ---
 
-# Function to get app name mapping - compatible with older bash versions
+#
+# get_app_name_mapping
+#
+# Provides a mapping from common dotfile names to application names. This is
+# implemented as a 'case' statement for maximum compatibility with older bash
+# versions.
+#
+# Parameters:
+#   $1 - The key (file or directory name) to look up.
+#
+# Outputs:
+#   The corresponding application name, or an empty string if not found.
+#
 get_app_name_mapping() {
     local key="$1"
     case "$key" in
@@ -65,14 +94,28 @@ get_app_name_mapping() {
     esac
 }
 
-# Function to check if mapping exists
+#
+# has_app_name_mapping
+#
+# Checks if a given key exists in the app name mapping.
+#
+# Parameters:
+#   $1 - The key to check.
+#
+# Returns:
+#   0 if the mapping exists, 1 otherwise.
+#
 has_app_name_mapping() {
     local key="$1"
     local result=$(get_app_name_mapping "$key")
     [[ -n "$result" ]]
 }
 
-# Function to display usage and examples
+#
+# usage
+#
+# Displays the script's usage information and examples, then exits.
+#
 usage() {
     cat << EOF
 Move configuration files to GNU Stow-compatible dotfiles repository
@@ -95,7 +138,19 @@ EOF
     exit 1
 }
 
-# Function to check if a directory looks like a dotfiles repository
+#
+# is_dotfiles_directory
+#
+# Heuristically checks if a given path appears to be a dotfiles repository.
+# It checks for common names, stow marker files, or the presence of multiple
+# known application subdirectories.
+#
+# Parameters:
+#   $1 - The directory path to check.
+#
+# Returns:
+#   0 if it's likely a dotfiles directory, 1 otherwise.
+#
 is_dotfiles_directory() {
     local path="$1"
     # Check common names
@@ -114,7 +169,19 @@ is_dotfiles_directory() {
     return 1
 }
 
-# Function to get the dotfiles directory
+#
+# get_dotfiles_dir
+#
+# Determines the correct dotfiles directory to use. It prioritizes a
+# user-provided path, then tries to auto-detect from the current directory,
+# and finally falls back to an interactive prompt.
+#
+# Parameters:
+#   $1 - An optional, user-specified path for the dotfiles directory.
+#
+# Outputs:
+#   The resolved, absolute path to the dotfiles directory.
+#
 get_dotfiles_dir() {
     local default_dir="$HOME/dotfiles"
     local dir_input="$1"
@@ -164,7 +231,19 @@ get_dotfiles_dir() {
     echo "$dotfiles_dir"
 }
 
-# Function to infer the application name
+#
+# infer_app_name
+#
+# Infers the application name from the source path. It checks predefined
+# mappings, handles paths inside ~/.config, and uses the parent directory
+# name as a fallback.
+#
+# Parameters:
+#   $1 - The source path of the dotfile or directory.
+#
+# Outputs:
+#   The inferred application name.
+#
 infer_app_name() {
     local source_path="$1"
     local base_name="$(basename "$source_path" | sed 's/^\.//')"
@@ -197,7 +276,14 @@ infer_app_name() {
     echo "$parent_dir"
 }
 
-# Function to clean up junk files
+#
+# cleanup_junk
+#
+# Removes common junk files (like .DS_Store) from the dotfiles repository.
+#
+# Parameters:
+#   $1 - The path to the dotfiles directory to clean.
+#
 cleanup_junk() {
     echo "Cleaning up junk files..."
     find "$1" -name ".DS_Store" -delete 2>/dev/null || true
