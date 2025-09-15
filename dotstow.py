@@ -21,12 +21,29 @@ log = logging.getLogger(__name__)
 
 
 def check_stow_is_installed() -> bool:
-    """Checks if the 'stow' command is available in the system's PATH."""
+    """Checks if the 'stow' command is available in the system's PATH.
+
+    Returns:
+        bool: True if 'stow' is installed and in the PATH, False otherwise.
+    """
     return shutil.which("stow") is not None
 
 
 class DotfileMover:
-    """Handles the moving of dotfiles to a Stow-compatible repository."""
+    """
+    Handles the logic of moving dotfiles to a Stow-compatible repository.
+
+    This class encapsulates all the functionality related to validating paths,
+    inferring application names, moving files, and integrating with GNU Stow.
+
+    Attributes:
+        source_path (Path): The absolute path to the source dotfile/directory.
+        app_name (Optional[str]): The target application name for the stow package.
+        dotfiles_dir (Path): The absolute path to the dotfiles repository.
+        auto_stow (bool): If True, run `stow` without confirmation.
+        no_stow (bool): If True, skip the `stow` operation entirely.
+        target_path (Path): The calculated destination path within the dotfiles repo.
+    """
 
     # A more complete and organized list of common dotfiles/config directories
     # The key is the path relative to the home directory, the value is the app name.
@@ -84,6 +101,17 @@ class DotfileMover:
         auto_stow: bool = False,
         no_stow: bool = False,
     ):
+        """Initializes the DotfileMover with user-provided parameters.
+
+        Args:
+            source_path (str): The path to the dotfile or directory to move.
+            app_name (Optional[str]): The name for the application package in stow.
+                If None, it will be inferred.
+            dotfiles_dir (Optional[str]): The path to the dotfiles repository.
+                If None, it will be auto-detected or prompted for.
+            auto_stow (bool): Flag to run `stow` automatically without a prompt.
+            no_stow (bool): Flag to disable `stow` operations entirely.
+        """
         self.source_path = Path(source_path).expanduser().resolve()
         self.app_name = app_name
 
@@ -100,17 +128,40 @@ class DotfileMover:
 
         self.auto_stow = auto_stow
         self.no_stow = no_stow
+        self.target_path: Path  # To be calculated during validation
 
     def _get_global_config_path(self) -> Path:
-        """Returns the expected path to the global configuration file."""
+        """Returns the expected path to the global configuration file.
+
+        The global config is typically located at ~/.config/dotstow/config.json.
+
+        Returns:
+            Path: The path to the global configuration file.
+        """
         return Path.home() / ".config" / "dotstow" / "config.json"
 
     def _get_local_config_path(self) -> Path:
-        """Returns the expected path to the local configuration file."""
+        """Returns the expected path to the local configuration file.
+
+        The local config is expected to be named `config.json` in the current
+        working directory.
+
+        Returns:
+            Path: The path to the local configuration file.
+        """
         return Path.cwd() / "config.json"
 
     def _load_config(self) -> dict:
-        """Loads configuration from a JSON file, checking global and local paths."""
+        """
+        Loads configuration from a JSON file.
+
+        It checks for a global config file first, then a local one.
+        If found, it loads the JSON content.
+
+        Returns:
+            dict: The loaded configuration dictionary, or an empty dictionary
+                  if no config file is found or if there's an error.
+        """
         global_config_path = self._get_global_config_path()
         local_config_path = self._get_local_config_path()
 
@@ -135,7 +186,22 @@ class DotfileMover:
             return {}
 
     def _get_dotfiles_dir(self, dotfiles_dir: Optional[str]) -> Path:
-        """Determines the dotfiles directory with smart defaults and user input."""
+        """
+        Determines the dotfiles directory with smart defaults and user input.
+
+        The method prioritizes the provided `dotfiles_dir`, then attempts to
+        auto-detect if the current working directory is a dotfiles repo.
+        If all else fails, it falls back to an interactive prompt.
+
+        Args:
+            dotfiles_dir (Optional[str]): A potential path to the dotfiles directory.
+
+        Returns:
+            Path: The resolved, absolute path to the dotfiles directory.
+
+        Raises:
+            ValueError: If a specified `dotfiles_dir` does not exist.
+        """
         if dotfiles_dir:
             path = Path(dotfiles_dir).expanduser().resolve()
             if not path.exists():
@@ -178,7 +244,16 @@ class DotfileMover:
     def _is_dotfiles_directory(self, path: Path) -> bool:
         """
         Heuristically checks if a directory looks like a dotfiles repository.
+
         This helps in auto-detecting the location if the user is already there.
+        Detection is based on common directory names, stow-related files, or the
+        presence of multiple known application directories.
+
+        Args:
+            path (Path): The directory path to check.
+
+        Returns:
+            bool: True if the directory seems to be a dotfiles repository.
         """
         # A directory named 'dotfiles' or similar
         if path.name.lower() in ("dotfiles", "configs", "config"):
@@ -197,8 +272,14 @@ class DotfileMover:
 
     def _infer_app_name(self) -> str:
         """
-        Infers the application name from the source path by checking a mapping
-        or by inspecting the directory structure.
+        Infers the application name from the source path.
+
+        It first checks against a predefined mapping (`APP_NAME_MAPPINGS`).
+        If no match is found, it uses the directory name for `.config` subdirectories,
+        or the filename as a final fallback.
+
+        Returns:
+            str: The inferred application name.
         """
         home = Path.home()
         relative_path_str = str(self.source_path.relative_to(home))
@@ -218,7 +299,19 @@ class DotfileMover:
         return self.source_path.name.lstrip(".")
 
     def _get_target_path(self, app_name: str) -> Path:
-        """Calculates the target path in the dotfiles repository, preserving .config structure."""
+        """
+        Calculates the target path in the dotfiles repository.
+
+        This method preserves the `.config` directory structure to ensure that
+        `stow` can create symlinks correctly. For example, `~/.config/nvim`
+        will be moved to `dotfiles/nvim/.config/nvim`.
+
+        Args:
+            app_name (str): The name of the application package.
+
+        Returns:
+            Path: The calculated absolute target path inside the dotfiles repo.
+        """
         home = Path.home()
         relative_path = self.source_path.relative_to(home)
 
@@ -232,7 +325,17 @@ class DotfileMover:
             return self.dotfiles_dir / app_name / relative_path
 
     def _validate_source_and_target(self) -> None:
-        """Validates source existence and target path availability."""
+        """
+        Validates the source path and calculates the target path.
+
+        This method ensures the source exists, is not a symlink, and is not
+        already inside the dotfiles repository. It then calculates the target path
+        and checks if a file already exists at that destination.
+
+        Raises:
+            FileNotFoundError: If the source path does not exist.
+            FileExistsError: If the calculated target path already exists.
+        """
         if not self.source_path.exists():
             raise FileNotFoundError(f"Source path does not exist: {self.source_path}")
 
@@ -261,7 +364,15 @@ class DotfileMover:
             )
 
     def _perform_movement(self) -> None:
-        """Executes the file/directory move operation."""
+        """
+        Executes the file or directory move operation.
+
+        It creates the necessary parent directories for the target path and then
+        moves the source file/directory to the target destination.
+
+        Raises:
+            RuntimeError: If the move operation fails for any reason.
+        """
         try:
             self.target_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(str(self.source_path), str(self.target_path))
@@ -272,7 +383,13 @@ class DotfileMover:
             raise RuntimeError(f"Failed to move files: {e}")
 
     def _run_stow(self) -> None:
-        """Runs stow to symlink the moved application files."""
+        """
+        Runs the GNU Stow command to create symlinks.
+
+        This method constructs and executes the `stow` command to symlink the
+        newly moved application files from the dotfiles repository back to the
+        home directory.
+        """
         log.info(f"Running stow for '{self.app_name}'...")
         try:
             subprocess.run(
@@ -296,7 +413,15 @@ class DotfileMover:
             sys.exit(1)
 
     def move(self) -> None:
-        """Main execution flow for moving and stowing dotfiles."""
+        """
+        Main execution flow for moving and stowing dotfiles.
+
+        This method orchestrates the entire process:
+        1. Validates the source and target paths.
+        2. Prompts the user for confirmation.
+        3. Performs the file movement.
+        4. Handles the stow logic based on user flags (`--auto-stow`, `--no-stow`).
+        """
         self._validate_source_and_target()
 
         log.info("--- Preparing Dotfile Move ---")
@@ -334,7 +459,12 @@ class DotfileMover:
 
 
 def create_parser() -> argparse.ArgumentParser:
-    """Creates the command-line argument parser."""
+    """
+    Creates and configures the command-line argument parser.
+
+    Returns:
+        argparse.ArgumentParser: The configured parser object.
+    """
     parser = argparse.ArgumentParser(
         description="Move configuration files to GNU Stow-compatible dotfiles repository",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -378,7 +508,13 @@ Examples:
 
 
 def main() -> None:
-    """Main entry point of the script."""
+    """
+    Main entry point for the script.
+
+    Parses command-line arguments, checks for dependencies, initializes the
+    `DotfileMover`, and executes the move operation. Handles exceptions and
+    provides user-friendly error messages.
+    """
     parser = create_parser()
     args = parser.parse_args()
 

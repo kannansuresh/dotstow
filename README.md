@@ -26,10 +26,19 @@ git clone https://github.com/kannansuresh/dotstow.git
 cd dotstow
 
 # Make executable
-chmod +x dotstow.py
+chmod +x dotstow.py dotstowsh/*.sh extras/*.sh
 
 # Optional: Add to PATH for global usage
 sudo ln -s $(pwd)/dotstow.py /usr/local/bin/dotstow
+```
+
+## Shell Version
+
+A lightweight, dependency-free bash version is also available at `dotstowsh/dotstow.sh`. It provides similar functionality for users who prefer a pure shell solution.
+
+```bash
+# Usage for the shell script
+./dotstowsh/dotstow.sh <source_path> [app_name]
 ```
 
 ### Installing GNU Stow
@@ -357,8 +366,12 @@ This project is open source. See the repository for license details.
 
 For issues, feature requests, or contributions, please visit the GitHub repository.
 
-## Extras
+## Helper Scripts
 
-The repository contains an extras folder with a collection of bash scripts for managing dotfiles using GNU Stow with special support for macOS environments.
+The `extras/` directory contains a collection of utility scripts to simplify common dotfile management tasks:
 
-[Read more about them.](./extras/README.md)
+- **`stow.sh`**: A wrapper to stow (symlink) all packages in the repository. It can also stow a single, specified package. Includes macOS-specific workarounds.
+- **`unstow.sh`**: The inverse of `stow.sh`. Removes all symlinks for all packages, or for a single specified package.
+- **`migrate.sh`**: A utility to move your entire dotfiles repository from one location to another, safely handling the unstowing and restowing process.
+
+For more details, see the documentation within each script or the [extras README](./extras/README.md).
